@@ -1,0 +1,14 @@
+[package]
+name = "design-token-tool"
+version = "0.1.0"
+edition = "2024"
+authors = ["hurui"]
+description = "Convert DESIGN.md-compatible front matter into DTCG token JSON"
+license = "MIT"
+
+[dependencies]
+clap = { version = "4.5.37", features = ["derive"] }
+indexmap = { version = "2.9.0", features = ["serde"] }
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = { version = "1.0.140", features = ["preserve_order"] }
+serde_yaml = "0.9.34"
