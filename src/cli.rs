@@ -13,7 +13,7 @@ struct Cli {
 
 #[derive(Subcommand, Debug)]
 enum Command {
-    /// Parse DESIGN.md-compatible front matter and write DTCG design token JSON.
+    /// Parse DESIGN.md-compatible front matter and write DTCG resolver token files.
     ParseMd { input: PathBuf, output: PathBuf },
 }
 
@@ -32,16 +32,26 @@ pub fn run() -> Result<(), String> {
     }
 }
 
-/// Converts a Markdown file with DESIGN.md-compatible front matter into a DTCG JSON file.
+/// Converts a Markdown file with DESIGN.md-compatible front matter into DTCG resolver files.
 fn parse_md(args: ParseMdArgs) -> Result<(), String> {
     let source = fs::read_to_string(&args.input)
         .map_err(|error| format!("failed to read {}: {error}", args.input.display()))?;
     let output = convert_markdown_to_dtcg(&source)?;
-    let json = serde_json::to_string_pretty(&output)
-        .map_err(|error| format!("failed to serialize DTCG JSON: {error}"))?;
 
-    fs::write(&args.output, format!("{json}\n"))
-        .map_err(|error| format!("failed to write {}: {error}", args.output.display()))?;
+    for file in output.files {
+        let output_path = args.output.join(file.path);
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+        }
+
+        let json = serde_json::to_string_pretty(&file.json)
+            .map_err(|error| format!("failed to serialize {}: {error}", output_path.display()))?;
+
+        fs::write(&output_path, format!("{json}\n"))
+            .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
+    }
 
     Ok(())
 }

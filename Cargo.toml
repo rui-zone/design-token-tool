@@ -12,3 +12,6 @@ indexmap = { version = "2.9.0", features = ["serde"] }
 serde = { version = "1.0.219", features = ["derive"] }
 serde_json = { version = "1.0.140", features = ["preserve_order"] }
 serde_yaml = "0.9.34"
+
+[dev-dependencies]
+insta = "1.47.2"

@@ -1,40 +1,50 @@
 use std::fs;
+use std::path::Path;
 use std::process::Command;
 
-use serde_json::Value;
+const SNAPSHOT_FILES: &[&str] = &[
+    "foundation/spacing.tokens.json",
+    "foundation/radius.tokens.json",
+    "foundation/typography.tokens.json",
+    "foundation/semantic-colors.tokens.json",
+    "theme/light.tokens.json",
+    "theme/dark.tokens.json",
+    "tokens.resolver.json",
+];
 
 #[test]
-fn converts_fixture_design_md_to_dtcg_json() {
+fn converts_fixture_design_md_to_dtcg_resolver_files() {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
-    let output_path = std::env::temp_dir().join(format!(
-        "design-token-tool-{}-tokens.tokens.json",
-        std::process::id()
-    ));
+    let output_dir =
+        std::env::temp_dir().join(format!("design-token-tool-{}-tokens", std::process::id()));
+    let _ = fs::remove_dir_all(&output_dir);
 
     let status = Command::new(env!("CARGO_BIN_EXE_design-token-tool"))
         .arg("parse-md")
         .arg(format!("{manifest_dir}/tests/fixtures/design.md"))
-        .arg(&output_path)
+        .arg(&output_dir)
         .status()
         .expect("CLI should run");
 
     assert!(status.success());
 
-    let output = fs::read_to_string(&output_path).expect("output JSON should be readable");
-    let json: Value = serde_json::from_str(&output).expect("output should be valid JSON");
+    insta::assert_snapshot!("cli_resolver_files", render_output_files(&output_dir));
 
-    assert_eq!(json["colors"]["$type"], "color");
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["colorSpace"], "srgb");
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["components"][0], 1.0);
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["components"][1], 1.0);
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["components"][2], 1.0);
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["alpha"], 1.0);
-    assert_eq!(json["colors"]["neutral-0"]["$value"]["hex"], "#ffffff");
-    assert_eq!(json["colors"]["black-alpha-20"]["$value"]["alpha"], 0.04);
-    assert_eq!(
-        json["colors"]["background-light"]["$value"],
-        "{colors.neutral-10}"
-    );
+    let _ = fs::remove_dir_all(output_dir);
+}
 
-    let _ = fs::remove_file(output_path);
+fn render_output_files(output_dir: &Path) -> String {
+    let mut snapshot = String::new();
+
+    for path in SNAPSHOT_FILES {
+        let file = fs::read_to_string(output_dir.join(path))
+            .unwrap_or_else(|error| panic!("failed to read generated `{path}`: {error}"));
+
+        snapshot.push_str("== ");
+        snapshot.push_str(path);
+        snapshot.push_str(" ==\n");
+        snapshot.push_str(&file);
+    }
+
+    snapshot
 }
