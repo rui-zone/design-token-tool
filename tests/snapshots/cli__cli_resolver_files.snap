@@ -64,7 +64,7 @@ expression: render_output_files(&output_dir)
     }
   }
 }
-== foundation/semantic-colors.tokens.json ==
+== foundation/colors.tokens.json ==
 {
   "colors": {
     "$type": "color",
@@ -152,7 +152,7 @@ expression: render_output_files(&output_dir)
           "$ref": "foundation/typography.tokens.json"
         },
         {
-          "$ref": "foundation/semantic-colors.tokens.json"
+          "$ref": "foundation/colors.tokens.json"
         }
       ]
     }
@@ -182,4 +182,28 @@ expression: render_output_files(&output_dir)
       "$ref": "#/modifiers/theme"
     }
   ]
+}
+== theme.css ==
+@custom-variant dark (&:where(.dark, .dark *, [data-theme="dark"], [data-theme="dark"] *));
+
+@theme {
+  --spacing-xs: 4px;
+  --spacing-sm: 8px;
+  --spacing-columns: 12;
+  --radius-sm: 4px;
+  --radius-md: 8px;
+  --font-body_md: Public Sans;
+  --text-body_md: 16px;
+  --text-body_md--line-height: 1.6;
+  --text-body_md--letter-spacing: 0px;
+  --text-body_md--font-weight: normal;
+  --color-neutral-0: #ffffff;
+  --color-neutral-10: #fafafa;
+  --color-black-alpha-20: rgb(0 0 0 / 0.04);
+  --color-background: var(--color-neutral-10);
+}
+
+.dark,
+[data-theme="dark"] {
+  --color-background: #111111;
 }

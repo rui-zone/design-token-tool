@@ -6,14 +6,15 @@ const SNAPSHOT_FILES: &[&str] = &[
     "foundation/spacing.tokens.json",
     "foundation/radius.tokens.json",
     "foundation/typography.tokens.json",
-    "foundation/semantic-colors.tokens.json",
+    "foundation/colors.tokens.json",
     "theme/light.tokens.json",
     "theme/dark.tokens.json",
     "tokens.resolver.json",
+    "theme.css",
 ];
 
 #[test]
-fn converts_fixture_design_md_to_dtcg_resolver_files() {
+fn converts_fixture_design_md_to_dtcg_resolver_files_and_tailwind_v4_css() {
     let manifest_dir = env!("CARGO_MANIFEST_DIR");
     let output_dir =
         std::env::temp_dir().join(format!("design-token-tool-{}-tokens", std::process::id()));
@@ -22,6 +23,15 @@ fn converts_fixture_design_md_to_dtcg_resolver_files() {
     let status = Command::new(env!("CARGO_BIN_EXE_design-token-tool"))
         .arg("parse-md")
         .arg(format!("{manifest_dir}/tests/fixtures/design.md"))
+        .arg(&output_dir)
+        .status()
+        .expect("CLI should run");
+
+    assert!(status.success());
+
+    let status = Command::new(env!("CARGO_BIN_EXE_design-token-tool"))
+        .arg("gen-tailwind-v4")
+        .arg(output_dir.join("tokens.resolver.json"))
         .arg(&output_dir)
         .status()
         .expect("CLI should run");

@@ -27,7 +27,7 @@ pub(super) fn build_resolver(name: Option<String>, description: Option<String>) 
                     { "$ref": "foundation/spacing.tokens.json" },
                     { "$ref": "foundation/radius.tokens.json" },
                     { "$ref": "foundation/typography.tokens.json" },
-                    { "$ref": "foundation/semantic-colors.tokens.json" }
+                    { "$ref": "foundation/colors.tokens.json" }
                 ]
             }
         }),

@@ -84,7 +84,7 @@ pub fn convert_markdown_to_dtcg(markdown: &str) -> Result<GeneratedTokens, Strin
                 json: build_typography_tokens(design.typography.unwrap_or_default())?,
             },
             GeneratedTokenFile {
-                path: "foundation/semantic-colors.tokens.json",
+                path: "foundation/colors.tokens.json",
                 json: build_color_tokens(colors.foundation),
             },
             GeneratedTokenFile {
