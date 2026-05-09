@@ -9,8 +9,10 @@ References:
 
 ## Current Implementation
 
-- Use `design-token-tool parse-md <input.md> <output-dir>` to convert DESIGN.md-compatible front matter into a DTCG resolver token directory.
-- Use `design-token-tool gen-tailwind-v4 <tokens.resolver.json> <output-dir>` to convert a generated DTCG resolver token directory into Tailwind CSS v4 theme variables.
+- Use `design-token-tool md-to-dtcg --input DESIGN.md --output tokens` to convert DESIGN.md-compatible front matter into a DTCG resolver token directory.
+- Use `design-token-tool md-to-tailwind-v4 --input DESIGN.md --output styles` to convert DESIGN.md-compatible front matter directly into Tailwind CSS v4 theme variables.
+- Use `design-token-tool dtcg-to-tailwind-v4 --resolver tokens/tokens.resolver.json --output tokens` to convert a generated DTCG resolver token directory into Tailwind CSS v4 theme variables.
+- CLI path flags are optional. `md-to-dtcg` defaults to `--input DESIGN.md --output tokens`, `md-to-tailwind-v4` defaults to `--input DESIGN.md --output styles`, and `dtcg-to-tailwind-v4` defaults to `--resolver tokens/tokens.resolver.json --output tokens`.
 - Conversion only reads the leading `--- ... ---` front matter.
 - Current token support includes `colors`, `spacing`, `rounded`, and `typography`.
 - The CLI writes this structure under the explicit output directory:
@@ -21,8 +23,9 @@ References:
   - `theme/light.tokens.json`
   - `theme/dark.tokens.json`
   - `tokens.resolver.json`
-- `gen-tailwind-v4` writes `theme.css` under the explicit output directory.
-- `gen-tailwind-v4` resolves all resolver `$ref` paths relative to the provided `tokens.resolver.json` file.
+- `dtcg-to-tailwind-v4` writes `theme.css` under the output directory.
+- `dtcg-to-tailwind-v4` resolves all resolver `$ref` paths relative to the provided `tokens.resolver.json` file.
+- `md-to-tailwind-v4` writes only `theme.css` under the output directory and does not write intermediate DTCG files.
 - Tailwind CSS output does not include `@import "tailwindcss"`; it only emits theme variables and dark-mode overrides for use by the consuming application.
 - Tailwind CSS output emits light/foundation tokens in `@theme`, emits `@custom-variant dark`, and overrides dark theme tokens under `.dark` and `[data-theme="dark"]`.
 - Colors ending with `-light` or `-dark` are theme tokens. The suffix is removed in output so both themes override the same token path.
