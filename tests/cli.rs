@@ -11,6 +11,9 @@ const SNAPSHOT_FILES: &[&str] = &[
     "theme/dark.tokens.json",
     "tokens.resolver.json",
     "theme.css",
+    "figma/Foundation/default.tokens.json",
+    "figma/Theme/light.tokens.json",
+    "figma/Theme/dark.tokens.json",
 ];
 
 #[test]
@@ -37,6 +40,17 @@ fn converts_fixture_design_md_to_dtcg_resolver_files_and_tailwind_v4_css() {
         .arg(output_dir.join("tokens.resolver.json"))
         .arg("--output")
         .arg(&output_dir)
+        .status()
+        .expect("CLI should run");
+
+    assert!(status.success());
+
+    let status = Command::new(env!("CARGO_BIN_EXE_design-token-tool"))
+        .arg("dtcg-to-figma")
+        .arg("--resolver")
+        .arg(output_dir.join("tokens.resolver.json"))
+        .arg("--output")
+        .arg(output_dir.join("figma"))
         .status()
         .expect("CLI should run");
 
@@ -144,6 +158,29 @@ fn uses_default_paths_for_cli_options() {
 
     assert!(status.success());
     assert!(default_output_dir.join("tokens/theme.css").exists());
+
+    let status = Command::new(env!("CARGO_BIN_EXE_design-token-tool"))
+        .current_dir(&default_output_dir)
+        .arg("dtcg-to-figma")
+        .status()
+        .expect("CLI should run");
+
+    assert!(status.success());
+    assert!(
+        default_output_dir
+            .join("figma/Foundation/default.tokens.json")
+            .exists()
+    );
+    assert!(
+        default_output_dir
+            .join("figma/Theme/light.tokens.json")
+            .exists()
+    );
+    assert!(
+        default_output_dir
+            .join("figma/Theme/dark.tokens.json")
+            .exists()
+    );
 
     let _ = fs::remove_dir_all(default_output_dir.join("styles"));
 

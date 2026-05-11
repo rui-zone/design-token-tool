@@ -4,7 +4,8 @@ use std::path::PathBuf;
 
 use clap::{Parser, Subcommand};
 use design_token_tool::{
-    TAILWIND_V4_THEME_FILE, convert_markdown_to_dtcg, convert_resolver_to_tailwind_v4,
+    TAILWIND_V4_THEME_FILE, convert_markdown_to_dtcg, convert_resolver_to_figma,
+    convert_resolver_to_tailwind_v4,
 };
 
 #[derive(Parser, Debug)]
@@ -37,6 +38,13 @@ enum Command {
         #[arg(long, default_value = "tokens")]
         output: PathBuf,
     },
+    /// Generate Figma Variables import files from a DTCG resolver token directory.
+    DtcgToFigma {
+        #[arg(long, default_value = "tokens/tokens.resolver.json")]
+        resolver: PathBuf,
+        #[arg(long, default_value = "figma")]
+        output: PathBuf,
+    },
 }
 
 #[derive(Debug)]
@@ -57,6 +65,12 @@ struct DtcgToTailwindV4Args {
     output: PathBuf,
 }
 
+#[derive(Debug)]
+struct DtcgToFigmaArgs {
+    resolver: PathBuf,
+    output: PathBuf,
+}
+
 /// Parses command-line arguments and dispatches to the selected subcommand.
 pub fn run() -> Result<(), String> {
     let cli = Cli::parse();
@@ -68,6 +82,9 @@ pub fn run() -> Result<(), String> {
         }
         Command::DtcgToTailwindV4 { resolver, output } => {
             dtcg_to_tailwind_v4(DtcgToTailwindV4Args { resolver, output })
+        }
+        Command::DtcgToFigma { resolver, output } => {
+            dtcg_to_figma(DtcgToFigmaArgs { resolver, output })
         }
     }
 }
@@ -135,6 +152,36 @@ fn dtcg_to_tailwind_v4(args: DtcgToTailwindV4Args) -> Result<(), String> {
     })?;
 
     write_tailwind_css(&args.output, css)
+}
+
+/// Converts a DTCG resolver token directory into Figma Variables import files.
+fn dtcg_to_figma(args: DtcgToFigmaArgs) -> Result<(), String> {
+    let resolver_source = fs::read_to_string(&args.resolver)
+        .map_err(|error| format!("failed to read {}: {error}", args.resolver.display()))?;
+    let resolver_dir = args.resolver.parent().unwrap_or_else(|| Path::new("."));
+
+    let output = convert_resolver_to_figma(&resolver_source, |reference| {
+        let path = resolver_dir.join(reference);
+        fs::read_to_string(&path)
+            .map_err(|error| format!("failed to read {}: {error}", path.display()))
+    })?;
+
+    for file in output.files {
+        let output_path = args.output.join(file.path);
+
+        if let Some(parent) = output_path.parent() {
+            fs::create_dir_all(parent)
+                .map_err(|error| format!("failed to create {}: {error}", parent.display()))?;
+        }
+
+        let json = serde_json::to_string_pretty(&file.json)
+            .map_err(|error| format!("failed to serialize {}: {error}", output_path.display()))?;
+
+        fs::write(&output_path, format!("{json}\n"))
+            .map_err(|error| format!("failed to write {}: {error}", output_path.display()))?;
+    }
+
+    Ok(())
 }
 
 fn serialize_json(path: &str, json: &serde_json::Value) -> Result<String, String> {
