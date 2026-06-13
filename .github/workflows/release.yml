@@ -1,0 +1,148 @@
+name: Release
+
+"on":
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+
+env:
+  CARGO_TERM_COLOR: always
+  BINARY_NAME: design-token-tool
+
+jobs:
+  test:
+    name: Test
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Check tag version
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          tag_version="${GITHUB_REF_NAME#v}"
+          package_version="$(cargo pkgid | sed 's/.*#//')"
+
+          if [[ "${tag_version}" != "${package_version}" ]]; then
+            echo "Tag ${GITHUB_REF_NAME} does not match Cargo package version ${package_version}."
+            exit 1
+          fi
+
+      - name: Run tests
+        run: cargo test --locked
+
+  build:
+    name: Build ${{ matrix.platform }}
+    runs-on: ${{ matrix.os }}
+    needs: test
+
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - platform: linux-x86_64
+            os: blacksmith-2vcpu-ubuntu-2404
+            target: x86_64-unknown-linux-gnu
+            archive: tar.gz
+          - platform: windows-x86_64
+            os: blacksmith-2vcpu-windows-2025
+            target: x86_64-pc-windows-msvc
+            archive: zip
+          - platform: macos-x86_64
+            os: blacksmith-6vcpu-macos-15
+            target: x86_64-apple-darwin
+            archive: tar.gz
+          - platform: macos-aarch64
+            os: blacksmith-6vcpu-macos-15
+            target: aarch64-apple-darwin
+            archive: tar.gz
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v6
+
+      - name: Install stable Rust
+        run: |
+          rustup toolchain install stable --profile minimal
+          rustup default stable
+
+      - name: Install Rust target
+        run: rustup target add ${{ matrix.target }}
+
+      - name: Build release binary
+        run: cargo build --release --locked --target ${{ matrix.target }}
+
+      - name: Package Unix archive
+        if: runner.os != 'Windows'
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          dist_name="${BINARY_NAME}-${GITHUB_REF_NAME}-${{ matrix.platform }}"
+          dist_dir="dist/${dist_name}"
+
+          mkdir -p "${dist_dir}"
+          install -m 755 "target/${{ matrix.target }}/release/${BINARY_NAME}" "${dist_dir}/${BINARY_NAME}"
+          cp README.md LICENSE "${dist_dir}/"
+          tar -czf "dist/${dist_name}.tar.gz" -C dist "${dist_name}"
+
+      - name: Package Windows archive
+        if: runner.os == 'Windows'
+        shell: pwsh
+        run: |
+          $distName = "${env:BINARY_NAME}-${env:GITHUB_REF_NAME}-${{ matrix.platform }}"
+          $distDir = Join-Path "dist" $distName
+
+          New-Item -ItemType Directory -Path $distDir -Force | Out-Null
+          Copy-Item "target/${{ matrix.target }}/release/${env:BINARY_NAME}.exe" $distDir
+          Copy-Item "README.md" $distDir
+          Copy-Item "LICENSE" $distDir
+          Compress-Archive -Path $distDir -DestinationPath "dist/$distName.zip" -Force
+
+      - name: Upload release archive
+        uses: actions/upload-artifact@v7
+        with:
+          name: ${{ matrix.platform }}
+          path: dist/${{ env.BINARY_NAME }}-${{ github.ref_name }}-${{ matrix.platform }}.${{ matrix.archive }}
+          if-no-files-found: error
+
+  release:
+    name: Publish GitHub Release
+    runs-on: blacksmith-2vcpu-ubuntu-2404
+    needs: build
+    permissions:
+      contents: write
+
+    steps:
+      - name: Download release archives
+        uses: actions/download-artifact@v8
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: Generate checksums
+        shell: bash
+        run: |
+          set -euo pipefail
+
+          cd dist
+          sha256sum "${BINARY_NAME}-${GITHUB_REF_NAME}"-* | sort -k2 > SHA256SUMS
+
+      - name: Create GitHub release
+        uses: softprops/action-gh-release@v3
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: ${{ github.ref_name }}
+          files: dist/*
+          fail_on_unmatched_files: true
