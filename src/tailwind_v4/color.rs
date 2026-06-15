@@ -47,6 +47,27 @@ fn color_object_css_value(
     token_path: &str,
     color: &Map<String, Value>,
 ) -> Result<String, String> {
+    let color_space = color
+        .get("colorSpace")
+        .and_then(Value::as_str)
+        .ok_or_else(|| {
+            format!("invalid color value for `{token_path}` in `{reference}`: missing colorSpace")
+        })?;
+
+    match color_space {
+        "srgb" => srgb_color_object_css_value(reference, token_path, color),
+        "oklch" => oklch_color_object_css_value(reference, token_path, color),
+        _ => Err(format!(
+            "unsupported color space `{color_space}` for `{token_path}` in `{reference}`"
+        )),
+    }
+}
+
+fn srgb_color_object_css_value(
+    reference: &str,
+    token_path: &str,
+    color: &Map<String, Value>,
+) -> Result<String, String> {
     let alpha = color.get("alpha").and_then(Value::as_f64).ok_or_else(|| {
         format!("invalid color value for `{token_path}` in `{reference}`: missing alpha")
     })?;
@@ -87,4 +108,57 @@ fn color_object_css_value(
         channels[2],
         format_number(alpha)
     ))
+}
+
+fn oklch_color_object_css_value(
+    reference: &str,
+    token_path: &str,
+    color: &Map<String, Value>,
+) -> Result<String, String> {
+    let alpha = color.get("alpha").and_then(Value::as_f64).ok_or_else(|| {
+        format!("invalid color value for `{token_path}` in `{reference}`: missing alpha")
+    })?;
+
+    let components = color
+        .get("components")
+        .and_then(Value::as_array)
+        .ok_or_else(|| {
+            format!("invalid color value for `{token_path}` in `{reference}`: missing components")
+        })?;
+    if components.len() != 3 {
+        return Err(format!(
+            "invalid color value for `{token_path}` in `{reference}`: expected 3 components"
+        ));
+    }
+
+    let mut values = Vec::new();
+    for component in components {
+        let value = component.as_f64().ok_or_else(|| {
+            format!(
+                "invalid color value for `{token_path}` in `{reference}`: component is not a number"
+            )
+        })?;
+        values.push(value);
+    }
+
+    let lightness = values[0] * 100.0;
+    let chroma = values[1];
+    let hue = values[2];
+
+    if alpha >= 1.0 {
+        Ok(format!(
+            "oklch({}% {} {}deg)",
+            format_number(lightness),
+            format_number(chroma),
+            format_number(hue)
+        ))
+    } else {
+        Ok(format!(
+            "oklch({}% {} {}deg / {})",
+            format_number(lightness),
+            format_number(chroma),
+            format_number(hue),
+            format_number(alpha)
+        ))
+    }
 }

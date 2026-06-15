@@ -22,10 +22,11 @@ This project is early-stage and currently supports:
 - `rounded`
 - `typography`
 
-Supported color values are `#rrggbb`, `#rrggbbaa`, and aliases such as
-`{colors.neutral-10}`. Dimension values follow the DTCG 2025.10 dimension shape
-and currently accept `px` and `rem` for DTCG/Tailwind output. Figma export accepts
-pixel dimensions only.
+Supported color values are `#rrggbb`, `#rrggbbaa`, CSS OKLCH values such as
+`oklch(50% 0.1 250deg)`, and aliases such as `{colors.neutral-10}`. Dimension
+values follow the DTCG 2025.10 dimension shape and currently accept `px` and
+`rem` for DTCG/Tailwind output. Figma export accepts pixel dimensions only and
+supports `srgb` and `hsl` color spaces only.
 
 ## Installation
 
@@ -59,6 +60,7 @@ description: Design tokens for Example UI.
 colors:
   neutral-0: "#ffffff"
   neutral-10: "#fafafa"
+  brand: oklch(50% 0.1 250deg)
   background-light: "{colors.neutral-10}"
   background-dark: "#111111"
 spacing:

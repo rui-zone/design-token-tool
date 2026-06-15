@@ -83,3 +83,44 @@ fn maps_aliases_and_dark_overrides() {
     assert!(css.contains(".dark,\n[data-theme=\"dark\"] {"));
     assert!(css.contains("--color-background: rgb(0 0 0 / 0.5);"));
 }
+
+#[test]
+fn maps_oklch_colors_to_css() {
+    let css = convert(&[
+        (
+            "foundation.tokens.json",
+            r##"{
+              "colors": {
+                "$type": "color",
+                "brand": {
+                  "$value": {
+                    "colorSpace": "oklch",
+                    "components": [0.5, 0.1, 250.0],
+                    "alpha": 1.0
+                  }
+                }
+              }
+            }"##,
+        ),
+        (
+            "light.tokens.json",
+            r##"{
+              "colors": {
+                "$type": "color",
+                "background": {
+                  "$value": {
+                    "colorSpace": "oklch",
+                    "components": [0.6, 0.05, 180.0],
+                    "alpha": 0.5
+                  }
+                }
+              }
+            }"##,
+        ),
+        ("dark.tokens.json", "{}"),
+    ])
+    .expect("tailwind CSS should generate");
+
+    assert!(css.contains("--color-brand: oklch(50% 0.1 250deg);"));
+    assert!(css.contains("--color-background: oklch(60% 0.05 180deg / 0.5);"));
+}

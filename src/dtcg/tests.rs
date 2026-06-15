@@ -1,4 +1,5 @@
 use super::*;
+use serde_json::json;
 
 #[test]
 fn rejects_missing_theme_color_pair() {
@@ -91,4 +92,30 @@ fn normalizes_same_theme_alias_and_rejects_cross_theme_alias() {
     .expect_err("cross-theme aliases should fail");
 
     assert!(error.contains("background-light"));
+}
+
+#[test]
+fn converts_oklch_colors_to_dtcg_objects() {
+    let output = convert_markdown_to_dtcg(
+        "---\ncolors:\n  brand: oklch(50% 0.1 250deg)\n  background-light: oklch(60% 0.05 180deg / 0.5)\n  background-dark: oklch(40% 0.05 180deg / 0.5)\n---\n",
+    )
+    .expect("oklch colors should convert");
+
+    let foundation = &output.files[3].json;
+    assert_eq!(
+        foundation["colors"]["brand"]["$value"]["colorSpace"],
+        "oklch"
+    );
+    assert_eq!(
+        foundation["colors"]["brand"]["$value"]["components"],
+        json!([0.5, 0.1, 250.0])
+    );
+    assert_eq!(foundation["colors"]["brand"]["$value"]["alpha"], 1.0);
+
+    let light = &output.files[4].json;
+    assert_eq!(
+        light["colors"]["background"]["$value"]["components"],
+        json!([0.6, 0.05, 180.0])
+    );
+    assert_eq!(light["colors"]["background"]["$value"]["alpha"], 0.5);
 }

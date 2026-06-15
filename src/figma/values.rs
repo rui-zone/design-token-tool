@@ -74,7 +74,7 @@ fn validate_color_or_alias(reference: &str, token_path: &str, value: &Value) -> 
                 })?;
             if color_space != "srgb" && color_space != "hsl" {
                 return Err(format!(
-                    "invalid color value for `{token_path}` in `{reference}`: expected srgb or hsl"
+                    "invalid color value for `{token_path}` in `{reference}`: Figma export supports colorSpace `srgb` or `hsl`, got `{color_space}`"
                 ));
             }
             Ok(())
